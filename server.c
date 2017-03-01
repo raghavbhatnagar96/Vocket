@@ -16,10 +16,10 @@
 #include <signal.h>
 
 #define PORT "3490"  // the port users will be connecting to
-
+#define BUFSIZE 1024
 #define BACKLOG 10     // how many pending connections queue will hold
 
-#define MAXDATASIZE 100
+#define MAXDATASIZE 8111
 
 void sigchld_handler(int s)
 {
@@ -42,10 +42,28 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+
+static ssize_t loop_read(int fd, void*data, size_t size) {
+    ssize_t ret = 0;
+    while (size > 0) {
+        ssize_t r;
+        if ((r = read(fd, data, size)) < 0)
+            return r;
+        if (r == 0)
+            break;
+        ret += r;
+        data = (uint8_t*) data + r;
+        size -= (size_t) r;
+    }
+    return ret;
+}
+
+
+
 int main(int argc, char *argv[])
 {
     int sockfd, new_fd, numbytes;  // listen on sock_fd, new connection on new_fd
-    char buf[MAXDATASIZE];
+    uint8_t buf[BUFSIZE];
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // connector's address information
     socklen_t sin_size;
@@ -58,6 +76,9 @@ int main(int argc, char *argv[])
         fprintf(stderr,"usage: ./server <portnumber>\n");
         exit(1);
     }
+    FILE*output=fopen("output.wav", "a+");
+    int outnum = fileno(output);
+
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -126,19 +147,27 @@ int main(int argc, char *argv[])
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof s);
         printf("server: got connection from %s\n", s);
-
+        FILE*inpu = fopen("inpu.dat", "w+");
         /*Whenever the server accepts any incoming connection, it forks a new child process*/
-
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
-            while(1){    
+            for(;;){    
                 /* recv is used to recieve messages.*/
-                if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) { 
-                    perror("recv");
-                    exit(1);
-                }
-                buf[numbytes] = '\0';
+                // if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) { 
+                //     perror("recv");
+                //     exit(1);
+                // }
+                printf("aassa");
+                read(new_fd, buf, sizeof(buf));
+                
+                // if (loop_read(new_fd, buf, sizeof(buf)) != sizeof(buf)) {
+                //     fprintf(stderr, __FILE__": read() failed: %s\n", strerror(errno));
+                //     //goto finish;
+                // }
+                //buf[numbytes] = '\0';
                 printf("%s\n", buf);
+                fprintf(inpu, "%s ", buf);
+                fclose(inpu);
                 /*End of connection used to close socket to remove whitespace and infinite 
                 printing on whitespaces*/
                 if(strcmp(buf, "End of Connection")==0){ 
@@ -147,8 +176,9 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        close(new_fd);  // parent doesn't need this
+        //close(new_fd);  // parent doesn't need this
     }
 
     return 0;
 }
+

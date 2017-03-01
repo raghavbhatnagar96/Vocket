@@ -13,11 +13,40 @@
 #include <sys/socket.h>
 #include <signal.h>
 #include <arpa/inet.h>
-
+#include <pulse/simple.h>
+#include <pulse/error.h>
+#define BUFSIZE 1024
 //#define PORT "3490" // the port client will be connecting to 
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define MAXDATASIZE 8111 // max number of bytes we can get at once 
 int clientSocket;
+
+static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
+    ssize_t ret = 0;
+    //FILE* buf = fdopen(fd, "r");
+    while (size > 0) {
+        // char * clop=(char*)data;
+        // printf("%s", clop);
+        ssize_t r;
+        if ((r = write(fd, data, size)) < 0){
+            perror("send22");
+        }
+        if (write(sockfd, data, size) < 0){
+            close(sockfd);
+            printf("%d", errno);
+            //printf("%s", data);
+            //perror("send11");
+        }
+        if (r == 0)
+            break;
+        ret += r;
+        data = (const uint8_t*) data + r;
+        size -= (size_t) r;
+    }
+    return ret;
+}
+
+
 
 void my_handler_for_sigint(int signumber)
 {
@@ -59,11 +88,28 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char *argv[])
 {
+    
+    static const pa_sample_spec ss = {
+        .format = PA_SAMPLE_S16LE,
+        .rate = 44100,
+        .channels = 2
+    };
+
+    pa_simple *s2 = NULL;
+    int ret = 1;
+    int error;
+
+    if (!(s2 = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
+        fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
+        goto finish;
+    }
+
     int sockfd;  
-    char buf[MAXDATASIZE];
+    //char buf[MAXDATASIZE];
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
+    FILE*input=fopen("input.wav", "a+");
 
 
 //Signal handler for sigint
@@ -107,24 +153,47 @@ int main(int argc, char *argv[])
         fprintf(stderr, "client: failed to connect\n");
         return 2;
     }
+    
 
+    //error//
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
             s, sizeof s);
-    printf("client: connecting to %s\n", s);
 
+    printf("client: connecting to %s\n", s);
+    //printf("ZSx");
     freeaddrinfo(servinfo); // all done with this structure
     clientSocket = sockfd;///////////////////////////////signal handling////////////////////////
+    int innum = fileno(input);
+    
     while(1){
-        scanf("%s", buf);
-        if (send(sockfd, buf, MAXDATASIZE-1, 0) == -1){
-            close(sockfd);
-            perror("send");
+        // scanf("%s", buf);
+        // if (send(sockfd, buf, MAXDATASIZE-1, 0) == -1){
+        //     close(sockfd);
+        //     perror("send");
+        
+        uint8_t buf2[BUFSIZE];
+        /* Record some data ... */
+        
+        if (pa_simple_read(s2, buf2, sizeof(buf2), &error) < 0) {
+            fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
+            goto finish;
+        }
+        /* And write it to STDOUT */
+
+        if (loop_write(innum, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {
+            fprintf(stderr, __FILE__": write() failed: %s\n", strerror(errno));
+            goto finish;
         }
     }
+    ret = 0;
+    finish:
 
-    
+    if (s2)
+        pa_simple_free(s2);
+    return ret;
 
     close(sockfd);
 
     return 0;
 }
+
