@@ -63,7 +63,7 @@ static ssize_t loop_read(int fd, void*data, size_t size) {
 int main(int argc, char *argv[])
 {
     int sockfd, new_fd, numbytes;  // listen on sock_fd, new connection on new_fd
-    uint8_t buf[BUFSIZE];
+    uint8_t *buf;
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // connector's address information
     socklen_t sin_size;
@@ -157,7 +157,8 @@ int main(int argc, char *argv[])
                 //     perror("recv");
                 //     exit(1);
                 // }
-                printf("aassa");
+                buf = (uint8_t*)malloc(sizeof(uint8_t)*BUFSIZE);
+                //printf("aassa");
                 read(new_fd, buf, sizeof(buf));
                 
                 // if (loop_read(new_fd, buf, sizeof(buf)) != sizeof(buf)) {
@@ -165,15 +166,16 @@ int main(int argc, char *argv[])
                 //     //goto finish;
                 // }
                 //buf[numbytes] = '\0';
-                printf("%s\n", buf);
-                fprintf(inpu, "%s ", buf);
-                fclose(inpu);
+                printf("%s", (char*)buf);
+                fprintf(inpu, "%s", buf);
+                //fclose(inpu);
                 /*End of connection used to close socket to remove whitespace and infinite 
                 printing on whitespaces*/
                 if(strcmp(buf, "End of Connection")==0){ 
                     close(new_fd);
                     exit(0);
                 }
+                free(buf);
             }
         }
         //close(new_fd);  // parent doesn't need this

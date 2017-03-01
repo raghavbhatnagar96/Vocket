@@ -28,10 +28,10 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
         // char * clop=(char*)data;
         // printf("%s", clop);
         ssize_t r;
-        if ((r = write(fd, data, size)) < 0){
-            perror("send22");
-        }
-        if (write(sockfd, data, size) < 0){
+        // if ((r = write(fd, data, size)) < 0){
+        //     perror("send22");
+        // }
+        if ((r=write(sockfd, data, size)) < 0){
             close(sockfd);
             printf("%d", errno);
             //printf("%s", data);
