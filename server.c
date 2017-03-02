@@ -63,7 +63,8 @@ static ssize_t loop_read(int fd, void*data, size_t size) {
 int main(int argc, char *argv[])
 {
     int sockfd, new_fd, numbytes;  // listen on sock_fd, new connection on new_fd
-    uint8_t *buf;
+    //uint8_t *buf;
+    uint8_t buf[BUFSIZE];
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // connector's address information
     socklen_t sin_size;
@@ -76,9 +77,6 @@ int main(int argc, char *argv[])
         fprintf(stderr,"usage: ./server <portnumber>\n");
         exit(1);
     }
-    FILE*output=fopen("output.wav", "a+");
-    int outnum = fileno(output);
-
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -147,7 +145,8 @@ int main(int argc, char *argv[])
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof s);
         printf("server: got connection from %s\n", s);
-        FILE*inpu = fopen("inpu.dat", "w+");
+        FILE*inpu = fopen("output", "w+");/////////////////
+        int inpuno = fileno(inpu);////////////////////////
         /*Whenever the server accepts any incoming connection, it forks a new child process*/
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
@@ -157,26 +156,30 @@ int main(int argc, char *argv[])
                 //     perror("recv");
                 //     exit(1);
                 // }
-                buf = (uint8_t*)malloc(sizeof(uint8_t)*BUFSIZE);
+                //buf = (uint8_t*)malloc(sizeof(uint8_t)*BUFSIZE);
                 //printf("aassa");
                 read(new_fd, buf, sizeof(buf));
-                
+                //loop_read(new_fd, buf, sizeof(buf));
+                //buf[BUFSIZE]='\0';
+                //buf[BUFSIZE-1]='\0';
                 // if (loop_read(new_fd, buf, sizeof(buf)) != sizeof(buf)) {
                 //     fprintf(stderr, __FILE__": read() failed: %s\n", strerror(errno));
                 //     //goto finish;
                 // }
                 //buf[numbytes] = '\0';
-                printf("%s", (char*)buf);
-                fprintf(inpu, "%s", buf);
+                //printf("%s", (char*)buf);
+                write(inpuno, buf, sizeof(buf));
+                //fprintf(inpu, "%s", buf);
                 //fclose(inpu);
                 /*End of connection used to close socket to remove whitespace and infinite 
                 printing on whitespaces*/
-                if(strcmp(buf, "End of Connection")==0){ 
+                if(strcmp((char*)buf, "End of Connection")==0){ 
                     close(new_fd);
                     exit(0);
                 }
-                free(buf);
+                //free(buf);
             }
+            fclose(inpu);
         }
         //close(new_fd);  // parent doesn't need this
     }
