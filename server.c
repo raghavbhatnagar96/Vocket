@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
                 //buf = (uint8_t*)malloc(sizeof(uint8_t)*BUFSIZE);
                 //printf("aassa");
                 r2 = read(new_fd, buf, sizeof(buf));
-                printf("%zu\n", r2);
+                //printf("%zu\n", r2);
                 //loop_read(new_fd, buf, sizeof(buf));
                 //buf[BUFSIZE]='\0';
                 //buf[BUFSIZE-1]='\0';
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 
                 ///////play///////////
                 write(inpuno, buf, sizeof(buf));
-                if (pa_simple_write(playStream, buf, (size_t) r, &error) < 0) {
+                if (pa_simple_write(playStream, buf, (size_t) r2, &error) < 0) {
                     fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(error));
                     goto finish;
                 }

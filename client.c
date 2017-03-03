@@ -35,12 +35,12 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
         
         if ((r2 = write(sockfd, data, size)) < 0){
             close(sockfd);
-            //printf("%d", errno);
-            printf("%zu", r2);
+            printf("%d", errno);
+            //printf("%zu", r2);
             //printf("%s", data);
             //perror("send11");
         }
-        printf("%zu\n", r2);
+        //printf("%zu\n", r2);
         if (r == 0)
             break;
         ret += r;
