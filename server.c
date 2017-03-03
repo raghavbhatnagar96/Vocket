@@ -172,25 +172,7 @@ int main(int argc, char *argv[])
             /////////end//////////////
             for(;;){    
                 ssize_t r, r2;
-                /* recv is used to recieve messages.*/
-                // if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) { 
-                //     perror("recv");
-                //     exit(1);
-                // }
-                //buf = (uint8_t*)malloc(sizeof(uint8_t)*BUFSIZE);
-                //printf("aassa");
                 r2 = read(new_fd, buf, sizeof(buf));
-                //printf("%zu\n", r2);
-                //loop_read(new_fd, buf, sizeof(buf));
-                //buf[BUFSIZE]='\0';
-                //buf[BUFSIZE-1]='\0';
-                // if (loop_read(new_fd, buf, sizeof(buf)) != sizeof(buf)) {
-                //     fprintf(stderr, __FILE__": read() failed: %s\n", strerror(errno));
-                //     //goto finish;
-                // }
-                //buf[numbytes] = '\0';
-                //printf("%s", (char*)buf);
-
 
                 ///////play///////////
                 write(inpuno, buf, sizeof(buf));
@@ -199,18 +181,13 @@ int main(int argc, char *argv[])
                     goto finish;
                 }
                 ////////end//////////
-                
 
-                //fprintf(inpu, "%s", buf);
-                //fclose(inpu);
-                /*End of connection used to close socket to remove whitespace and infinite 
-                printing on whitespaces*/
                 if(strcmp((char*)buf, "End of Connection")==0){ 
                     close(new_fd);
                     printf("Ending connection");
                     exit(0);
                 }
-                //free(buf);
+
             }
             fclose(inpu);
             finish:
@@ -218,7 +195,7 @@ int main(int argc, char *argv[])
                     pa_simple_free(playStream);
                 return ret;
         }
-        //close(new_fd);  // parent doesn't need this
+        close(new_fd);  // parent doesn't need this
     }
    
     return 0;

@@ -25,9 +25,7 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
     ssize_t ret = 0;
     //FILE* buf = fdopen(fd, "r");
     while (size > 0) {
-        // char * clop=(char*)data;
-        // printf("%s", clop);
-        //printf("%d  ", sockfd);
+
         ssize_t r, r2;
         if ((r = write(fd, data, size)) < 0){
             perror("send22");
@@ -36,11 +34,8 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
         if ((r2 = write(sockfd, data, size)) < 0){
             close(sockfd);
             printf("%d", errno);
-            //printf("%zu", r2);
-            //printf("%s", data);
-            //perror("send11");
         }
-        //printf("%zu\n", r2);
+
         if (r == 0)
             break;
         ret += r;
@@ -170,10 +165,7 @@ int main(int argc, char *argv[])
     int innum = fileno(input);
     printf("%d\n ", sockfd);
     while(1){
-        // scanf("%s", buf);
-        // if (send(sockfd, buf, MAXDATASIZE-1, 0) == -1){
-        //     close(sockfd);
-        //     perror("send");
+
         
         uint8_t buf2[BUFSIZE];
         /* Record some data ... */
