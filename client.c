@@ -27,16 +27,20 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
     while (size > 0) {
         // char * clop=(char*)data;
         // printf("%s", clop);
-        ssize_t r;
+        //printf("%d  ", sockfd);
+        ssize_t r, r2;
         if ((r = write(fd, data, size)) < 0){
             perror("send22");
         }
-        if (write(sockfd, data, size) < 0){
+        
+        if ((r2 = write(sockfd, data, size)) < 0){
             close(sockfd);
-            printf("%d", errno);
+            //printf("%d", errno);
+            printf("%zu", r2);
             //printf("%s", data);
             //perror("send11");
         }
+        printf("%zu\n", r2);
         if (r == 0)
             break;
         ret += r;
@@ -95,11 +99,11 @@ int main(int argc, char *argv[])
         .channels = 2
     };
 
-    pa_simple *s2 = NULL;
+    pa_simple *recordStream = NULL;
     int ret = 1;
     int error;
 
-    if (!(s2 = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
+    if (!(recordStream = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
         fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
         goto finish;
     }
@@ -109,7 +113,7 @@ int main(int argc, char *argv[])
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
-    FILE*input=fopen("input.wav", "w+");
+    FILE*input=fopen("input.dat", "w+");
 
 
 //Signal handler for sigint
@@ -164,7 +168,7 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo); // all done with this structure
     clientSocket = sockfd;///////////////////////////////signal handling////////////////////////
     int innum = fileno(input);
-    
+    printf("%d\n ", sockfd);
     while(1){
         // scanf("%s", buf);
         // if (send(sockfd, buf, MAXDATASIZE-1, 0) == -1){
@@ -174,7 +178,7 @@ int main(int argc, char *argv[])
         uint8_t buf2[BUFSIZE];
         /* Record some data ... */
         
-        if (pa_simple_read(s2, buf2, sizeof(buf2), &error) < 0) {
+        if (pa_simple_read(recordStream, buf2, sizeof(buf2), &error) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             goto finish;
         }
@@ -188,8 +192,8 @@ int main(int argc, char *argv[])
     ret = 0;
     finish:
 
-    if (s2)
-        pa_simple_free(s2);
+    if (recordStream)
+        pa_simple_free(recordStream);
     return ret;
 
     close(sockfd);
