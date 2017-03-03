@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo); // all done with this structure
     clientSocket = sockfd;///////////////////////////////signal handling////////////////////////
     int innum = fileno(input);
-    printf("%d\n ", sockfd);
+    //printf("%d\n ", sockfd);
     while(1){
 
         

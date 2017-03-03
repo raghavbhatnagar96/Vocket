@@ -43,28 +43,11 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-
-static ssize_t loop_read(int fd, void*data, size_t size) {
-    ssize_t ret = 0;
-    while (size > 0) {
-        ssize_t r;
-        if ((r = read(fd, data, size)) < 0)
-            return r;
-        if (r == 0)
-            break;
-        ret += r;
-        data = (uint8_t*) data + r;
-        size -= (size_t) r;
-    }
-    return ret;
-}
-
-
-
 int main(int argc, char *argv[])
 {
     
-    int sockfd, new_fd, numbytes;  // listen on sock_fd, new connection on new_fd
+    int sockfd, new_fd;
+    //numbytes;  // listen on sock_fd, new connection on new_fd
     //uint8_t *buf;
     uint8_t buf[BUFSIZE];
     struct addrinfo hints, *servinfo, *p;
@@ -79,8 +62,8 @@ int main(int argc, char *argv[])
         fprintf(stderr,"usage: ./server <portnumber>\n");
         exit(1);
     }
-    FILE*output=fopen("output.wav", "w+");
-    int outnum = fileno(output);
+    //FILE*output=fopen("output.wav", "w+");
+    //int outnum = fileno(output);
 
 
     memset(&hints, 0, sizeof hints);
@@ -171,7 +154,7 @@ int main(int argc, char *argv[])
             }
             /////////end//////////////
             for(;;){    
-                ssize_t r, r2;
+                ssize_t r2;
                 r2 = read(new_fd, buf, sizeof(buf));
 
                 ///////play///////////
