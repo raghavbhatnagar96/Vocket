@@ -3,7 +3,7 @@ This is a minimalistic internet voice live chat software made by implementing so
 
 Usage:
 
-1. Install dependencies, use command:
+1. To install dependencies, use command:
 $ make dependencies
 
 2. To compile vocket, use:
