@@ -22,6 +22,7 @@ D. To run client, use:
 E. To exit client, use:
 
 `$ Ctrl + c`
+
 `$ y`
 
 F. To exit server, use:
