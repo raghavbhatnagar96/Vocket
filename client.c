@@ -21,6 +21,15 @@
 #define MAXDATASIZE 8111 // max number of bytes we can get at once 
 int clientSocket;
 
+/*
+loop_write function is used to read in a loop and send the data over to the
+server it is connected to using write() function. 
+fd: File parameter to record conversation if you want to.
+data: buffer where the audio is stored.
+size: size of buffer.
+sockfd: socket with the server connection.
+*/
+
 static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
     ssize_t ret = 0;
     //FILE* buf = fdopen(fd, "r");
@@ -46,7 +55,9 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
 }
 
 
-
+/*
+Segnal handler for the client.
+*/
 void my_handler_for_sigint(int signumber)
 {
   char ans[2];
@@ -85,19 +96,23 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+
+
+
+
 int main(int argc, char *argv[])
 {
-    
+    //Data structure for pulseaudio
     static const pa_sample_spec ss = {
         .format = PA_SAMPLE_S16LE,
         .rate = 44100,
         .channels = 2
     };
-
+    //recordStream
     pa_simple *recordStream = NULL;
     int ret = 1;
     int error;
-
+    //Creating recordStream using pa_simple_new
     if (!(recordStream = pa_simple_new(NULL, argv[0], PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &error))) {
         fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
         goto finish;
@@ -111,7 +126,7 @@ int main(int argc, char *argv[])
     FILE*input=fopen("input.dat", "w+");
 
 
-//Signal handler for sigint
+    //Signal handler for sigint
     if (signal(SIGINT, my_handler_for_sigint) == SIG_ERR)
       printf("\ncan't catch SIGINT\n");
 
@@ -161,20 +176,20 @@ int main(int argc, char *argv[])
     printf("client: connecting to %s\n", s);
     //printf("ZSx");
     freeaddrinfo(servinfo); // all done with this structure
-    clientSocket = sockfd;///////////////////////////////signal handling////////////////////////
+    //clientsocket for signal handling
+    clientSocket = sockfd;
     int innum = fileno(input);
     //printf("%d\n ", sockfd);
     while(1){
 
         
         uint8_t buf2[BUFSIZE];
-        /* Record some data ... */
-        
+        /* Record data ... */
         if (pa_simple_read(recordStream, buf2, sizeof(buf2), &error) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             goto finish;
         }
-        /* And write it to STDOUT */
+        /* And write it to socket and file */
 
         if (loop_write(innum, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {
             fprintf(stderr, __FILE__": write() failed: %s\n", strerror(errno));
@@ -182,12 +197,12 @@ int main(int argc, char *argv[])
         }
     }
     ret = 0;
+    //Close recordStream
     finish:
-
-    if (recordStream)
-        pa_simple_free(recordStream);
-    return ret;
-
+        if (recordStream)
+            pa_simple_free(recordStream);
+        return ret;
+    //close socket
     close(sockfd);
 
     return 0;

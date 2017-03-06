@@ -138,7 +138,8 @@ int main(int argc, char *argv[])
         /*Whenever the server accepts any incoming connection, it forks a new child process*/
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
-            ///////////play////////////
+            
+            //Data structure for pulseAudio
             static const pa_sample_spec ss = {
                 .format = PA_SAMPLE_S16LE,
                 .rate = 44100,
@@ -152,19 +153,20 @@ int main(int argc, char *argv[])
                 fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
                 goto finish;
             }
-            /////////end//////////////
+
             for(;;){    
                 ssize_t r2;
                 r2 = read(new_fd, buf, sizeof(buf));
 
-                ///////play///////////
+                //Write what you recieve to a file
                 write(inpuno, buf, sizeof(buf));
+                //Create a play stream
                 if (pa_simple_write(playStream, buf, (size_t) r2, &error) < 0) {
                     fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(error));
                     goto finish;
                 }
-                ////////end//////////
 
+                //End connection
                 if(strcmp((char*)buf, "End of Connection")==0){ 
                     close(new_fd);
                     printf("Ending connection");
@@ -173,6 +175,7 @@ int main(int argc, char *argv[])
 
             }
             fclose(inpu);
+            //Finish to close playStream
             finish:
                 if (playStream)
                     pa_simple_free(playStream);
