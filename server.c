@@ -62,7 +62,7 @@ void readFromSocket(int filefd, void*buf, int sockfd)
         printf("Ending connection");
         if (playStream)
             pa_simple_free(playStream);
-            ret = 9;
+            //ret = 9;
         exit(0);
     }
 }
@@ -72,7 +72,7 @@ Signal handler for the client.
 */
 void my_handler_for_sigalarm(int signumber)
 {
-  if ((signumber == SIGALRM)&&(ret!=9))
+  if (signumber == SIGALRM)
   {
     readFromSocket(inpuno, buf, new_fd);
   }
