@@ -15,11 +15,23 @@
 #include <arpa/inet.h>
 #include <pulse/simple.h>
 #include <pulse/error.h>
+#include <sys/time.h> // for setitimer
+
 #define BUFSIZE 1024
 //#define PORT "3490" // the port client will be connecting to 
 
 #define MAXDATASIZE 8111 // max number of bytes we can get at once 
-int clientSocket;
+
+
+#define INTERVAL 2 //in miliseconds
+
+/*defining global variables */
+pa_simple *recordStream; //recording stream
+uint8_t buf2[BUFSIZE]; //datastructure for buffer
+int innum; //file discriptor for file in which we store things
+int error; //error number
+int clientSocket; //socket that is used by the client.
+/*end of global variables*/
 
 /*
 loop_write function is used to read in a loop and send the data over to the
@@ -29,7 +41,6 @@ data: buffer where the audio is stored.
 size: size of buffer.
 sockfd: socket with the server connection.
 */
-
 static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
     ssize_t ret = 0;
     //FILE* buf = fdopen(fd, "r");
@@ -55,10 +66,26 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
 }
 
 
+void readFromStream(int fd, const void*data, size_t size, int sockfd)
+{
+
+        /* Record data ... */
+        if (pa_simple_read(recordStream, buf2, sizeof(buf2), &error) < 0) {
+            fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
+            //goto finish;
+        }
+        /* And write it to socket and file */
+        if (loop_write(fd, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {
+            fprintf(stderr, __FILE__": write() failed: %s\n", strerror(errno));
+            //goto finish;
+        }
+}
+
+
 /*
-Segnal handler for the client.
+Signal handler for the client.
 */
-void my_handler_for_sigint(int signumber)
+void my_handler_for_sigint_sigalarm(int signumber)
 {
   char ans[2];
   if (signumber == SIGINT)
@@ -82,6 +109,10 @@ void my_handler_for_sigint(int signumber)
        printf("Continung ..\n");
     }
   }
+  else if (signumber == SIGALRM)
+  {
+    readFromStream(innum, buf2, sizeof(buf2), clientSocket);
+  }
 }
 
 
@@ -102,14 +133,18 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char *argv[])
 {
+    //For function setitimer
+    struct itimerval it_val; 
+    it_val.it_value.tv_sec =     INTERVAL/1000;
+    it_val.it_value.tv_usec =    (INTERVAL*1000) % 1000000;   
+    it_val.it_interval = it_val.it_value;
     //Data structure for pulseaudio
     static const pa_sample_spec ss = {
         .format = PA_SAMPLE_S16LE,
         .rate = 44100,
         .channels = 2
     };
-    //recordStream
-    pa_simple *recordStream = NULL;
+
     int ret = 1;
     int error;
     //Creating recordStream using pa_simple_new
@@ -127,7 +162,9 @@ int main(int argc, char *argv[])
 
 
     //Signal handler for sigint
-    if (signal(SIGINT, my_handler_for_sigint) == SIG_ERR)
+    if (signal(SIGINT, my_handler_for_sigint_sigalarm) == SIG_ERR)
+      printf("\ncan't catch SIGINT\n");
+    if (signal(SIGALRM, my_handler_for_sigint_sigalarm) == SIG_ERR) //BIND SIGALARM
       printf("\ncan't catch SIGINT\n");
 
 
@@ -178,24 +215,15 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo); // all done with this structure
     //clientsocket for signal handling
     clientSocket = sockfd;
-    int innum = fileno(input);
-    //printf("%d\n ", sockfd);
-    while(1){
-
-        
-        uint8_t buf2[BUFSIZE];
-        /* Record data ... */
-        if (pa_simple_read(recordStream, buf2, sizeof(buf2), &error) < 0) {
-            fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
-            goto finish;
-        }
-        /* And write it to socket and file */
-
-        if (loop_write(innum, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {
-            fprintf(stderr, __FILE__": write() failed: %s\n", strerror(errno));
-            goto finish;
-        }
+    innum = fileno(input);
+    //Settimer for periodic function calling by sending SIGALARM at INTERVAL
+    if (setitimer(ITIMER_REAL, &it_val, NULL) == -1) {
+        perror("error calling setitimer()");
+        exit(1);
     }
+    while(1)
+        pause();
+
     ret = 0;
     //Close recordStream
     finish:

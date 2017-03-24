@@ -16,11 +16,17 @@
 #include <signal.h>
 #include <pulse/simple.h>
 #include <pulse/error.h>
+#include <sys/time.h> //for setitimer
 #define PORT "3490"  // the port users will be connecting to
 #define BUFSIZE 1024
 #define BACKLOG 10     // how many pending connections queue will hold
-
+#define INTERVAL 1 //nanoseconds
 #define MAXDATASIZE 8111
+/*Define Global Variables*/
+pa_simple *playStream;
+int inpuno, new_fd, error;
+uint8_t buf[BUFSIZE];
+int ret;
 
 void sigchld_handler(int s)
 {
@@ -32,6 +38,45 @@ void sigchld_handler(int s)
     errno = saved_errno;
 }
 
+void readFromSocket(int filefd, void*buf, int sockfd)
+{
+    ssize_t r2;
+    r2 = read(sockfd, buf, sizeof(buf));
+
+    //Write what you recieve to a file
+    write(filefd, buf, sizeof(buf));
+    //Create a play stream
+    if (pa_simple_write(playStream, buf, (size_t) r2, &error) < 0) {
+        //fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(error));
+        //goto finish;
+        close(sockfd);
+        printf("Ending connection\n");
+        exit(0);     
+        if (playStream)
+            pa_simple_free(playStream);
+            //ret = 9;
+    }
+    //End connection
+    if(strcmp((char*)buf, "End of Connection")==0){ 
+        close(sockfd);
+        printf("Ending connection");
+        if (playStream)
+            pa_simple_free(playStream);
+            ret = 9;
+        exit(0);
+    }
+}
+
+/*
+Signal handler for the client.
+*/
+void my_handler_for_sigalarm(int signumber)
+{
+  if ((signumber == SIGALRM)&&(ret!=9))
+  {
+    readFromSocket(inpuno, buf, new_fd);
+  }
+}
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -45,11 +90,12 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(int argc, char *argv[])
 {
-    
-    int sockfd, new_fd;
-    //numbytes;  // listen on sock_fd, new connection on new_fd
-    //uint8_t *buf;
-    uint8_t buf[BUFSIZE];
+    //For function setitimer
+    struct itimerval it_val; 
+    it_val.it_value.tv_sec =     INTERVAL/10000;
+    it_val.it_value.tv_usec =    (INTERVAL) % 1000000;   
+    it_val.it_interval = it_val.it_value;
+
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // connector's address information
     socklen_t sin_size;
@@ -57,14 +103,13 @@ int main(int argc, char *argv[])
     int yes=1;
     char s[INET6_ADDRSTRLEN];
     int rv;
-    
+    int sockfd;
+    if (signal(SIGALRM, my_handler_for_sigalarm) == SIG_ERR) //BIND SIGALARM
+      printf("\ncan't catch SIGINT\n");
     if (argc != 2) {
         fprintf(stderr,"usage: ./server <portnumber>\n");
         exit(1);
     }
-    //FILE*output=fopen("output.wav", "w+");
-    //int outnum = fileno(output);
-
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -122,8 +167,12 @@ int main(int argc, char *argv[])
     printf("server: waiting for connections...\n");
 
     while(1) {  // main accept() loop
+        FILE*inpu = fopen("output.dat", "w+");
+        inpuno = fileno(inpu);
+        ret = 1;
         sin_size = sizeof their_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        
         if (new_fd == -1) {
             perror("accept");
             continue;
@@ -133,8 +182,7 @@ int main(int argc, char *argv[])
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof s);
         printf("server: got connection from %s\n", s);
-        FILE*inpu = fopen("output.dat", "w+");
-        int inpuno = fileno(inpu);
+
         /*Whenever the server accepts any incoming connection, it forks a new child process*/
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
@@ -144,36 +192,21 @@ int main(int argc, char *argv[])
                 .format = PA_SAMPLE_S16LE,
                 .rate = 44100,
                 .channels = 2
-            };
+            };   
             
-            pa_simple *playStream = NULL;
-            int ret = 1;
+            //pa_simple *playStream = NULL;
             int error;
             if (!(playStream = pa_simple_new(NULL, argv[0], PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &error))) {
                 fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
                 goto finish;
             }
-
-            for(;;){    
-                ssize_t r2;
-                r2 = read(new_fd, buf, sizeof(buf));
-
-                //Write what you recieve to a file
-                write(inpuno, buf, sizeof(buf));
-                //Create a play stream
-                if (pa_simple_write(playStream, buf, (size_t) r2, &error) < 0) {
-                    fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(error));
-                    goto finish;
-                }
-
-                //End connection
-                if(strcmp((char*)buf, "End of Connection")==0){ 
-                    close(new_fd);
-                    printf("Ending connection");
-                    exit(0);
-                }
-
+            if (setitimer(ITIMER_REAL, &it_val, NULL) == -1) {
+                perror("error calling setitimer()");
+                exit(1);
             }
+            while(1)
+                pause();
+
             fclose(inpu);
             //Finish to close playStream
             finish:
