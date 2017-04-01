@@ -1,5 +1,5 @@
 # Vocket
-This is a minimalistic internet voice live chat software made by implementing sockets in C and various other system API's to transfer voice over the internet. 
+This is a minimalistic internet voice live chat software made by implementing sockets in C and various other system API's to transfer voice over the internet using g711 encoding decoding.
 Usage: 
 1. Install dependencies, use command:
 $ make dependencies
