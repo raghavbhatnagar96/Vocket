@@ -16,7 +16,7 @@
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <sys/time.h> // for setitimer
-
+#include "codec.c"
 #define BUFSIZE 1024
 //#define PORT "3490" // the port client will be connecting to 
 
@@ -69,10 +69,15 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
 void readFromStream(int fd, const void*data, size_t size, int sockfd)
 {
 
+        int i=0;
         /* Record data ... */
         if (pa_simple_read(recordStream, buf2, sizeof(buf2), &error) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             //goto finish;
+        }
+        for(i=0;i++;i<BUFSIZE)
+        {
+        	buf2[i] = (uint8_t)linear2ulaw((int)buf2[i]); //u law encodeing
         }
         /* And write it to socket and file */
         if (loop_write(fd, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {

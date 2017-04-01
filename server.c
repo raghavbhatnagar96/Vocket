@@ -17,6 +17,7 @@
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <sys/time.h> //for setitimer
+#include "codec.c"
 #define PORT "3490"  // the port users will be connecting to
 #define BUFSIZE 1024
 #define BACKLOG 10     // how many pending connections queue will hold
@@ -38,11 +39,15 @@ void sigchld_handler(int s)
     errno = saved_errno;
 }
 
-void readFromSocket(int filefd, void*buf, int sockfd)
+void readFromSocket(int filefd, uint8_t*buf, int sockfd)
 {
     ssize_t r2;
+    int i=0;
     r2 = read(sockfd, buf, sizeof(buf));
-
+    for(i=0;i++;i<BUFSIZE)
+    {
+        buf[i] = (uint8_t)linear2ulaw((int)buf[i]); //decodeing
+    }
     //Write what you recieve to a file
     write(filefd, buf, sizeof(buf));
     //Create a play stream
