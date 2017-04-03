@@ -77,7 +77,7 @@ void readFromStream(int fd, const void*data, size_t size, int sockfd)
         }
         for(i=0;i++;i<BUFSIZE)
         {
-        	buf2[i] = (uint8_t)linear2ulaw((int)buf2[i]); //u law encodeing
+        	buf2[i] = (uint8_t)linear2ulaw((int)buf2[i]); //ulaw encoding for voip
         }
         /* And write it to socket and file */
         if (loop_write(fd, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {
