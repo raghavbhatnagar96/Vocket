@@ -44,10 +44,14 @@ void readFromSocket(int filefd, uint8_t*buf, int sockfd)
     ssize_t r2;
     int i=0;
     r2 = read(sockfd, buf, sizeof(buf));
+    
+    //Decoding using linear2ulaw
     for(i=0;i++;i<BUFSIZE)
     {
-        buf[i] = (uint8_t)linear2ulaw((int)buf[i]); //decoding using ulaw for voip
+        buf[i] = (uint8_t)linear2ulaw((int)buf[i]);
     }
+    
+
     //Write what you recieve to a file
     write(filefd, buf, sizeof(buf));
     //Create a play stream
