@@ -46,7 +46,7 @@ void readFromSocket(int filefd, uint8_t*buf, int sockfd)
     r2 = read(sockfd, buf, sizeof(buf));
     for(i=0;i++;i<BUFSIZE)
     {
-        buf[i] = (uint8_t)linear2ulaw((int)buf[i]); //decodeing
+        buf[i] = (uint8_t)linear2ulaw((int)buf[i]); //decoding using ulaw for voip
     }
     //Write what you recieve to a file
     write(filefd, buf, sizeof(buf));
