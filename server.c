@@ -48,7 +48,7 @@ void readFromSocket(int filefd, uint8_t*buf, int sockfd)
     //Decoding using linear2ulaw
     for(i=0;i++;i<BUFSIZE)
     {
-        buf[i] = (uint8_t)linear2ulaw((int)buf[i]);
+        buf[i] = (uint8_t)ulaw2linear((int)buf[i]);
     }
     
 
