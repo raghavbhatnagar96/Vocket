@@ -17,7 +17,7 @@
 #include <pulse/error.h>
 #include <sys/time.h> // for setitimer
 #include "codec.c"
-#define BUFSIZE 1024
+#define BUFSIZE 2048
 //#define PORT "3490" // the port client will be connecting to 
 
 #define MAXDATASIZE 8111 // max number of bytes we can get at once 
@@ -31,6 +31,8 @@ uint8_t buf2[BUFSIZE]; //datastructure for buffer
 int innum; //file discriptor for file in which we store things
 int error; //error number
 int clientSocket; //socket that is used by the client.
+ssize_t total;
+int count;
 /*end of global variables*/
 
 /*
@@ -55,7 +57,16 @@ static ssize_t loop_write(int fd, const void*data, size_t size, int sockfd) {
             close(sockfd);
             printf("%d", errno);
         }
-
+        //printf("%zu %zu\n", r2, size);
+        if(count<1000){
+        total = total + r2;
+        count++;
+        //printf("%zu %d\n", total, count);
+        }
+        if (count==1000){
+            //printf("%zu\n", total);
+            count++;
+        }
         if (r == 0)
             break;
         ret += r;
@@ -75,10 +86,13 @@ void readFromStream(int fd, const void*data, size_t size, int sockfd)
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             //goto finish;
         }
+        //printf("%zu", sizeof(buf2));
         for(i=0;i++;i<BUFSIZE)
         {
         	buf2[i] = (uint8_t)linear2ulaw((int)buf2[i]); //ulaw encoding for voip
         }
+
+        //printf("%zu\n", sizeof(buf2));
         /* And write it to socket and file */
         if (loop_write(fd, buf2, sizeof(buf2), sockfd) != sizeof(buf2)) {
             fprintf(stderr, __FILE__": write() failed: %s\n", strerror(errno));
@@ -141,7 +155,7 @@ int main(int argc, char *argv[])
     //For function setitimer
     struct itimerval it_val; 
     it_val.it_value.tv_sec =     INTERVAL/1000;
-    it_val.it_value.tv_usec =    (INTERVAL*1000) % 1000000;   
+    it_val.it_value.tv_usec =    (INTERVAL*1000%1000000);   
     it_val.it_interval = it_val.it_value;
     //Data structure for pulseaudio
     static const pa_sample_spec ss = {

@@ -19,7 +19,7 @@
 #include <sys/time.h> //for setitimer
 #include "codec.c"
 #define PORT "3490"  // the port users will be connecting to
-#define BUFSIZE 1024
+#define BUFSIZE 2048
 #define BACKLOG 10     // how many pending connections queue will hold
 #define INTERVAL 1 //nanoseconds
 #define MAXDATASIZE 8111
@@ -44,8 +44,8 @@ void readFromSocket(int filefd, uint8_t*buf, int sockfd)
     ssize_t r2;
     int i=0;
     r2 = read(sockfd, buf, sizeof(buf));
-    
-    //Decoding using linear2ulaw
+    //printf("%zu", r2);
+    //Decoding using ulaw2linear
     for(i=0;i++;i<BUFSIZE)
     {
         buf[i] = (uint8_t)ulaw2linear((int)buf[i]);
